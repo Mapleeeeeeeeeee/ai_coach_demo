@@ -31,6 +31,8 @@ wheels/
 venv/
 ENV/
 .env
+server/.env.example
+
 
 # Jupyter Notebook
 .ipynb_checkpoints

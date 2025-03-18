@@ -1,12 +1,9 @@
-// Entry point for the AI Coach Demo application
-import { setupEventListeners } from './eventHandlers';
-import { ApiService } from './services/apiService';
+import { App } from './app';
+import './styles/main.css';
+import './styles/modern-chat.css';
 
-// Initialize the API service
-const apiService = new ApiService('https://your-backend-api-url.com/api');
-
-// Setup all event listeners when DOM is loaded
+// Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  setupEventListeners(apiService);
-  console.log('AI Coach Demo application initialized');
+  // Create the app with the API base URL
+  const app = new App('http://localhost:3000/api');
 });

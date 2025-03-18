@@ -109,8 +109,10 @@ function setupMenuButtons(): void {
   // Toggle tool items
   const toolToggles = document.querySelectorAll('.tool-toggle');
   toolToggles.forEach(toggle => {
-    toggle.addEventListener('click', function() {
-      this.classList.toggle('active');
+    toggle.addEventListener('click', (event) => {
+      // Use the event target instead of 'this'
+      const toggleElement = event.currentTarget as HTMLElement;
+      toggleElement.classList.toggle('active');
     });
   });
 

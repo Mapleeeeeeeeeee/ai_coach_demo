@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>PASSION Agent</title>
+  <style>
+    :root {
+      --primary-green: #007852;
+      --light-green: #00a07a;
+      --dark-green: #005a3e;
+      --bg-white: #ffffff;
+      --bg-light: #f7f7f8;
+      --bg-dropdown: #ffffff;
+      --text-dark: #343541;
+      --text-white: #ffffff;
+      --text-gray: #6e6e80;
+      --text-light-gray: #acacbe;
+      --border-color: #e5e5e5;
+      --dropdown-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      --button-hover: #ebfff5;
+      --border-radius: 8px;
+      --popup-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-white);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-white);
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-dark);
+      cursor: pointer;
+      padding: 8px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--primary-green);
+      margin: 0 20px 0 10px;
+    }
+
+    /* 上下文 (原先場景) selector dropdown */
+    .context-dropdown {
+      position: relative;
+      margin-right: auto;
+    }
+
+    .context-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background-color: var(--bg-light);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .context-selector:hover {
+      border-color: var(--primary-green);
+    }
+
+    .context-selector-text {
+      font-size: 14px;
+    }
+
+    .context-selector-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .context-selector-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .context-dropdown-content {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 4px;
+      background-color: var(--bg-dropdown);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--popup-shadow);
+      min-width: 160px;
+      z-index: 50;
+      display: none;
+    }
+
+    .context-dropdown-content.show {
+      display: block;
+    }
+
+    .context-option {
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .context-option:hover {
+      background-color: var(--button-hover);
+    }
+
+    .context-option.active {
+      color: var(--primary-green);
+      font-weight: bold;
+    }
+
+    .context-option-check {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .context-option-check svg {
+      width: 14px;
+      height: 14px;
+      color: var(--primary-green);
+    }
+
+    .new-chat-btn {
+      background-color: var(--primary-green);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.3s;
+    }
+
+    .new-chat-btn:hover {
+      background-color: var(--dark-green);
+    }
+
+    .new-chat-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Chat content */
+    .chat-content {
+      flex: 1;
+      overflow-y: auto;
+      background-color: var(--bg-light);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    /* 空白區：卡片快速選擇 */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .scene-card-container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .scene-card {
+      background-color: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      flex: 1;
+      max-width: 250px;
+      padding: 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .scene-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .scene-card h2 {
+      margin-bottom: 12px;
+      font-size: 16px;
+      color: var(--primary-green);
+    }
+
+    .scene-card p {
+      font-size: 14px;
+      color: var(--text-gray);
+      line-height: 1.4;
+    }
+
+    /* Chat messages */
+    .message {
+      display: flex;
+      padding: 16px 24px;
+      margin: 8px 0;
+    }
+
+    .user-message {
+      background-color: var(--bg-white);
+      justify-content: flex-end;
+    }
+
+    .ai-message {
+      background-color: var(--bg-light);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .message-content {
+      max-width: 80%;
+      line-height: 1.5;
+    }
+
+    .user-message .message-content {
+      text-align: right;
+    }
+
+    /* Loading dots for AI typing */
+    .loading-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      background-color: var(--text-gray);
+      border-radius: 50%;
+      display: inline-block;
+      animation: dot-pulse 1.5s infinite ease-in-out;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes dot-pulse {
+      0%, 100% { transform: scale(0.7); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Input area */
+    .input-container {
+      padding: 16px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: var(--bg-light);
+    }
+
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 768px;
+      background-color: var(--bg-white);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tools-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-gray);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tools-button:hover {
+      background-color: var(--button-hover);
+      color: var(--text-dark);
+    }
+
+    .tools-button svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .popover-container {
+      position: fixed;
+      z-index: 1000;
+      background-color: var(--bg-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--popup-shadow);
+      border: 1px solid var(--border-color);
+      width: 320px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: none;
+      /* 預設隱藏，動態顯示 */
+    }
+
+    .popover-arrow {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      /* 預設：箭頭在容器底部 pointing up */
+      border-top: 8px solid var(--bg-white);
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.1));
+    }
+
+    .tools-menu.show,
+    .upload-menu.show {
+      display: block;
+    }
+
+    .tools-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tools-header-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-gray);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+    }
+
+    .tools-header-close:hover {
+      background-color: var(--button-hover);
+      color: var(--text-dark);
+    }
+
+    .tools-header-close svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .tools-list {
+      padding: 8px;
+    }
+
+    .tool-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .tool-item:hover {
+      background-color: var(--button-hover);
+    }
+
+    .tool-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tool-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-light);
+      border-radius: 6px;
+      color: var(--primary-green);
+    }
+
+    .tool-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .tool-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tool-name {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .tool-description {
+      font-size: 12px;
+      color: var(--text-gray);
+    }
+
+    .tool-toggle {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      background-color: var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tool-toggle.active {
+      background-color: var(--primary-green);
+    }
+
+    .tool-toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: white;
+      top: 2px;
+      left: 2px;
+      transition: all 0.3s;
+    }
+
+    .tool-toggle.active::after {
+      left: 22px;
+    }
+
+    .input-area {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-dark);
+      font-size: 15px;
+      resize: none;
+      padding: 16px;
+      max-height: 200px;
+      min-height: 24px;
+      overflow-y: auto;
+    }
+
+    .input-area:focus {
+      outline: none;
+    }
+
+    .input-area::placeholder {
+      color: var(--text-light-gray);
+    }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .function-buttons {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .function-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--text-gray);
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      gap: 4px;
+    }
+
+    .function-btn:hover {
+      background-color: var(--button-hover);
+      color: var(--text-dark);
+    }
+
+    .function-btn .btn-text {
+      transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+
+    .function-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .upload-menu-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .upload-menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .upload-menu-item:hover {
+      background-color: var(--button-hover);
+    }
+
+    .upload-menu-item svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-gray);
+    }
+
+    .mic-btn {
+      background: none;
+      border: none;
+      color: var(--text-gray);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      margin-left: 8px;
+    }
+
+    .mic-btn:hover {
+      background-color: var(--button-hover);
+      color: var(--text-dark);
+    }
+
+    .mic-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .send-btn {
+      background-color: var(--primary-green);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-left: 8px;
+    }
+
+    .send-btn:hover {
+      background-color: var(--dark-green);
+    }
+
+    .send-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .info-text {
+      color: var(--text-gray);
+      font-size: 12px;
+      margin-top: 16px;
+      max-width: 768px;
+      text-align: center;
+    }
+
+    /* 下拉式選單的每個項目：外層已經有 .context-option, 這裡增加更細的排版 */
+    .context-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      /* 讓左邊(名稱+icon) 和右邊(check)分開 */
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    /* 左側容器：icon + 文字描述 */
+    .context-option-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      /* icon 與文字間距 */
+    }
+
+    /* icon 大小、顏色可自行調整 */
+    .context-option-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--primary-green);
+    }
+
+    /* 上下文名稱 */
+    .context-option-name {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* 上下文的副描述(例如 "適用快速回應") */
+    .context-option-desc {
+      display: block;
+      font-size: 12px;
+      color: var(--text-gray);
+    }
+
+    /* 被選取的項目 (active) 高亮 */
+    .context-option.active {
+      color: var(--primary-green);
+      font-weight: bold;
+    }
+
+    /* 勾選圖示位置 */
+    .context-option-check svg {
+      width: 16px;
+      height: 16px;
+      color: var(--primary-green);
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <button class="menu-btn">
+      ≡
+    </button>
+
+    <div class="brand">PASSION Agent</div>
+
+    <!-- 改成上下文下拉式選單 -->
+    <div class="context-dropdown">
+      <!-- 主按鈕：顯示當前選擇 + 下拉箭頭 -->
+      <div class="context-selector" id="contextSelector">
+        <span class="context-selector-text">場景 A</span>
+        <span class="context-selector-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+
+      <!-- 下拉內容區 -->
+      <div class="context-dropdown-content" id="contextDropdown">
+        <!-- 上下文 A -->
+        <div class="context-option active" data-context="A">
+          <div class="context-option-left">
+            <!-- 左側 icon (自行更換SVG) -->
+            <span class="context-option-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H5" />
+                <path d="M8 17l-3-3 3-3" />
+                <path d="M17 8l3-3-3-3" />
+              </svg>
+            </span>
+            <div>
+              <span class="context-option-name">場景 A</span>
+              <span class="context-option-desc">適用精準回覆</span>
+            </div>
+          </div>
+          <span class="context-option-check">
+            <!-- 勾選圖示 -->
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12L10 17L19 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </span>
+        </div>
+
+        <!-- 上下文 B -->
+        <div class="context-option" data-context="B">
+          <div class="context-option-left">
+            <span class="context-option-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            <div>
+              <span class="context-option-name">場景 B</span>
+              <span class="context-option-desc">適用一般情境</span>
+            </div>
+          </div>
+          <span class="context-option-check">
+            <!-- 這裡可留空或用同樣的勾選SVG -->
+          </span>
+        </div>
+
+        <!-- 上下文 C -->
+        <div class="context-option" data-context="C">
+          <div class="context-option-left">
+            <span class="context-option-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 2l20 20" stroke="red" />
+              </svg>
+            </span>
+            <div>
+              <span class="context-option-name">場景 C</span>
+              <span class="context-option-desc">適用快速回應</span>
+            </div>
+          </div>
+          <span class="context-option-check"></span>
+        </div>
+      </div>
+    </div>
+
+    <button class="new-chat-btn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      新對話
+    </button>
+  </header>
+
+  <div class="chat-content">
+    <!-- 將「對話尚未開始...」改為卡片快速選擇的區塊 -->
+    <div class="empty-state">
+      <div class="scene-card-container">
+        <!-- 場景A 卡片 -->
+        <div class="scene-card">
+          <h2>場景 A</h2>
+          <p>模擬敘述：適合進行一般客服或問題諮詢的情境示例。</p>
+        </div>
+        <!-- 場景B 卡片 -->
+        <div class="scene-card">
+          <h2>場景 B</h2>
+          <p>模擬敘述：適合用於寫作輔助、文章潤稿或內容發想的情境示例。</p>
+        </div>
+        <!-- 場景C 卡片 -->
+        <div class="scene-card">
+          <h2>場景 C</h2>
+          <p>模擬敘述：適合教學解說、學習輔助或知識問答的情境示例。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具花園彈出視窗 -->
+  <div class="popover-container tools-menu" id="toolsMenu">
+    <div class="popover-arrow"></div>
+    <div class="tools-header">
+      <span>工具花園</span>
+      <button class="tools-header-close" id="toolsCloseBtn">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </button>
+    </div>
+    <div class="tools-list">
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M12 9V12L14 14M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">時間感知</div>
+            <div class="tool-description">讓AI了解當前時間和日期</div>
+          </div>
+        </div>
+        <div class="tool-toggle active"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
+                stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 7V13H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">記憶管理</div>
+            <div class="tool-description">控制AI對話記憶長度</div>
+          </div>
+        </div>
+        <div class="tool-toggle"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                stroke="currentColor" stroke-width="1.5" />
+              <path d="M14 10C14 8.89543 13.1046 8 12 8C10.8954 8 10 8.89543 10 10C10 11.1046 10.8954 12 12 12"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <path d="M12 12V16M12 16H10M12 16H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">數據分析</div>
+            <div class="tool-description">啟用表格和數據處理能力</div>
+          </div>
+        </div>
+        <div class="tool-toggle active"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="2">
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path
+                d="M6 8h.01M8 8h.01M10 8h.01M6 12h.01M8 12h.01M10 12h.01M6 16h.01M8 16h.01M10 16h.01M14 8h4M14 12h4M14 16h4" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">MCP Server</div>
+            <div class="tool-description">微控制器和雲端整合服務</div>
+          </div>
+        </div>
+        <div class="tool-toggle active"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="1.5">
+              <path
+                d="M9 17H15M9 13H15M9 9H10M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">內容總結</div>
+            <div class="tool-description">自動生成會話內容摘要</div>
+          </div>
+        </div>
+        <div class="tool-toggle"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="2">
+              <path d="M19 16V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2Z" />
+              <path d="M16 2v4M8 2v4M3 10h18M10 14h4" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">API Gateway</div>
+            <div class="tool-description">連接外部API和服務</div>
+          </div>
+        </div>
+        <div class="tool-toggle"></div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 10V3L4 14H11V21L20 10H13Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="tool-details">
+            <div class="tool-name">創意增強</div>
+            <div class="tool-description">增強AI創意思維和表達</div>
+          </div>
+        </div>
+        <div class="tool-toggle active"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 上傳選單彈出視窗 -->
+  <div class="popover-container upload-menu" id="uploadMenu">
+    <div class="popover-arrow"></div>
+    <div class="upload-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M17 21H7a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h7l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      上傳文件
+    </div>
+    <div class="upload-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M21 15c0 1.05-.8 2-1.67 2h-9.33c-.87 0-1.67-.95-1.67-2s.8-2 1.67-2h9.33c.87 0 1.67.95 1.67 2zM3.83 10c0-1.05.8-2 1.67-2h9.33c.87 0 1.67.95 1.67 2s-.8 2-1.67 2H5.5c-.87 0-1.67-.95-1.67-2z"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      上傳圖片
+    </div>
+    <div class="upload-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M8 4v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h8" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      上傳表格
+    </div>
+  </div>
+
+  <div class="input-container">
+    <div class="input-wrapper">
+      <button class="tools-button" id="toolsBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      </button>
+
+      <textarea class="input-area" placeholder="傳送訊息至 PASSION Agent..." rows="1"></textarea>
+
+      <div class="input-actions">
+        <div class="function-buttons">
+          <!-- 上傳按鈕 (維持不變) -->
+          <button class="function-btn" id="uploadBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+
+          <!-- 網路搜尋按鈕：放大鏡 icon + 綠色文字 -->
+          <button class="function-btn" id="searchBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M14.4121 14.4121C13.0534 15.7709 11.1488 15.7709 9.79004 14.4121C8.43126 13.0534 8.43126 11.1488 9.79004 9.79004C11.1488 8.43126 13.0534 8.43126 14.4121 9.79004C15.7709 11.1488 15.7709 13.0534 14.4121 14.4121Z"
+                stroke="var(--primary-green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M15.5 15.5L18 18" stroke="var(--primary-green)" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+            <span class="btn-text">網路搜尋</span>
+          </button>
+
+          <!-- 深入研究按鈕：書本 icon + 綠色文字 -->
+          <button class="function-btn" id="researchBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-green)" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M2 19V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v13" />
+              <path d="M2 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2" />
+              <path d="M2 19V6" />
+              <path d="M12 3v16" />
+            </svg>
+            <span class="btn-text">深入研究</span>
+          </button>
+        </div>
+
+        <button class="mic-btn">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 19v4M8 23h8" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <button class="send-btn">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <p class="info-text">PASSION Agent 可能會產生不準確的訊息。請驗證重要數據並遵循適用的法規和政策。</p>
+  </div>
+
+  <!-- Load compiled TypeScript -->
+  <script src="dist/bundle.js"></script>
+</body>
+
+</html>

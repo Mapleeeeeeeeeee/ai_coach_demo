@@ -14,7 +14,7 @@ export async function characterChatExample() {
     console.log(`- 会话ID: ${sessionInfo.sessionId}`);
     console.log(`- 当前阶段: ${sessionInfo.currentStage}`);
     console.log(`- 阶段描述: ${sessionInfo.stageDescription}`);
-    console.log('- 角色信息:', sessionInfo.characterInfo);
+    console.log('- 角色訊息:', sessionInfo.characterInfo);
     
     // 2. 发送聊天消息
     console.log('\n发送第一条消息...');

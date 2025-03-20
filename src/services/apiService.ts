@@ -23,6 +23,7 @@ export class ApiService {
   async startSession(llmChoice: string = 'openai'): Promise<{
     sessionId: string;
     characterInfo: any;
+    characterDetail: string;
     currentStage: number;
     stageDescription: string;
   }> {
@@ -51,6 +52,7 @@ export class ApiService {
       return {
         sessionId: data.session_id,
         characterInfo: data.character_info,
+        characterDetail: data.character_detail, // 确保返回 character_detail
         currentStage: data.current_stage,
         stageDescription: data.stage_description,
       };

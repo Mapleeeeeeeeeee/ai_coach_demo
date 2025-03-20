@@ -67,7 +67,8 @@ export class App {
    * Handle new chat button click
    */
   private handleNewChat(): void {
-    this.apiService.createNewChat()
+    // 调用 startSession 而非弃用的 createNewChat
+    this.apiService.startSession()
       .then(() => {
         this.chatContent.reset();
         console.log('App: New chat created');
@@ -93,32 +94,37 @@ export class App {
       // Show loading indicator
       const loadingIndicator = this.chatContent.addLoadingIndicator();
       
-      // Get AI response from API
-      const response = await this.apiService.sendPrompt(message, this.currentContext);
+      // 初始化会话（如果尚未初始化）
+      if (!this.apiService.getSessionId()) {
+        await this.apiService.startSession();
+      }
+      
+      // 使用 sendChat 而非弃用的 sendPrompt
+      const chatResponse = await this.apiService.sendChat(message);
       
       // Remove loading indicator
       this.chatContent.removeElement(loadingIndicator);
       
       // Add AI message to chat
       this.chatContent.addMessage({
-        content: response,
+        content: chatResponse.responseText,
         isUser: false,
         timestamp: new Date()
       });
       
       // If in practice mode, update sidebar with chat data
       if (document.body.classList.contains('practice-mode')) {
-        // Get the full response data from the API service
-        const apiService = this.apiService as any;
-        if (apiService.lastChatResponse) {
-          this.updateSidebarWithChatData(apiService.lastChatResponse);
+        // 使用完整的响应数据更新侧边栏
+        if (chatResponse) {
+          this.updateSidebarWithChatData(chatResponse);
+          // 确保存储最新响应供其他组件使用
+          this.apiService.lastChatResponse = chatResponse;
         }
       }
       
       // If in exam mode and passed, show success message and reveal info
       if (document.body.classList.contains('exam-mode')) {
-        const apiService = this.apiService as any;
-        if (apiService.lastChatResponse && apiService.lastChatResponse.isPass) {
+        if (chatResponse && chatResponse.isPass) {
           // If this stage is passed
           if (!document.body.classList.contains('stage-passed')) {
             document.body.classList.add('stage-passed');
@@ -130,7 +136,7 @@ export class App {
           }
           
           // If the entire exam is finished
-          if (apiService.lastChatResponse.finished) {
+          if (chatResponse.finished) {
             document.body.classList.add('exam-finished');
             this.chatContent.addMessage({
               content: '🏆 恭喜您完成所有階段測試！',
@@ -139,7 +145,7 @@ export class App {
             });
             
             // Show all info that was hidden
-            this.setupPracticeMode(apiService.lastChatResponse);
+            this.setupPracticeMode(chatResponse);
           }
         }
       }
@@ -482,6 +488,7 @@ export class App {
    * @returns Formatted HTML string
    */
   private parseStageDescription(jsonStr: string): string {
+    console.log('Stage description input:', jsonStr);
     try {
       // Try to parse JSON
       let stageInfo;
@@ -490,7 +497,38 @@ export class App {
       if (typeof jsonStr === 'object') {
         stageInfo = jsonStr;
       } else {
-        stageInfo = JSON.parse(jsonStr.replace(/'/g, '"'));
+        // 替换单引号为双引号，并修复常见的JSON格式错误
+        let cleanedJson = jsonStr
+          .replace(/'/g, '"')
+          .replace(/([{,]\s*)([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*:/g, '$1"$2":')
+          .replace(/,\s*([}\]])/g, '$1')
+          .replace(/\(/g, '[').replace(/\)/g, ']');
+          
+        // 尝试解析，如果失败则进行更多清理
+        try {
+          stageInfo = JSON.parse(cleanedJson);
+        } catch (parseError) {
+          console.warn('First parse attempt failed, trying deeper cleanup:', parseError);
+          // 如果仍然失败，尝试更激进的格式修复
+          // 例如，找出第一层的键值对并手动构建对象
+          const keyValuePairs = cleanedJson.match(/"([^"]+)"\s*:\s*([^,}]+)/g);
+          if (keyValuePairs) {
+            const manualObj: Record<string, any> = {};
+            keyValuePairs.forEach(pair => {
+              const [key, value] = pair.split(':').map(p => p.trim());
+              const cleanKey = key.replace(/"/g, '');
+              // 处理可能的字符串值、数字或布尔值
+              try {
+                manualObj[cleanKey] = JSON.parse(value);
+              } catch {
+                manualObj[cleanKey] = value.replace(/^"|"$/g, '');
+              }
+            });
+            stageInfo = manualObj;
+          } else {
+            throw parseError; // 如果无法修复，则重新抛出原始错误
+          }
+        }
       }
       
       // Format the stage info into HTML
@@ -703,7 +741,7 @@ export class App {
           </div>
           <div class="character-info-modal-body">
             <div class="character-detail">
-              <h3>角色詳細信息</h3>
+              <h3>角色詳細訊息</h3>
               <p>${characterDetail}</p>
             </div>
             <div class="character-json">

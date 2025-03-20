@@ -61,9 +61,9 @@ body.practice-mode .chat-content {
 document.querySelector('.chat-content').style.marginRight = '320px';
 ```
 
-### 3. 角色詳細信息不顯示
+### 3. 角色詳細訊息不顯示
 
-**症狀**：點擊角色頭像後，模態框中的"角色詳細信息"或"角色數據"為空
+**症狀**：點擊角色頭像後，模態框中的"角色詳細訊息"或"角色數據"為空
 
 **原因**：
 - API返回的資料結構與預期不符
@@ -216,7 +216,7 @@ async sendChatMock(mockData: any): Promise<any> {
 
 如遇無法解決的問題，請提供以下資訊尋求支援：
 
-1. 瀏覽器控制台完整錯誤信息
+1. 瀏覽器控制台完整錯誤訊息
 2. 問題重現步驟
 3. API請求和響應的樣本
-4. 相關配置信息
+4. 相關配置訊息

@@ -1,6 +1,7 @@
 import { App } from './app';
 import './styles/main.css';
 import './styles/modern-chat.css';
+import './styles/modes.css';
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

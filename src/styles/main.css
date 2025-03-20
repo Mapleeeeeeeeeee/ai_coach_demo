@@ -176,6 +176,11 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  margin-right: 0;
+}
+
+body.practice-mode .chat-content {
+  margin-right: 320px;
 }
 
 /* 空白區：卡片快速選擇 */

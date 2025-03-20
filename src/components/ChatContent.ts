@@ -80,8 +80,11 @@ export class ChatContent {
       });
       
       const avatarElement = createElement('div', {
-        className: 'avatar',
+        className: 'avatar character-avatar',
         textContent: 'PA',
+        attributes: {
+          'data-tooltip': '點擊查看角色資訊'
+        }
       });
       
       headerElement.appendChild(avatarElement);

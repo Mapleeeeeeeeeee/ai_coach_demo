@@ -22,6 +22,9 @@ export class App {
     // Initialize components
     this.initializeComponents();
     
+    // Setup character avatar click behavior
+    this.setupCharacterAvatarClick();
+    
     console.log('AI Coach application initialized');
   }
   
@@ -102,6 +105,44 @@ export class App {
         isUser: false,
         timestamp: new Date()
       });
+      
+      // If in practice mode, update sidebar with chat data
+      if (document.body.classList.contains('practice-mode')) {
+        // Get the full response data from the API service
+        const apiService = this.apiService as any;
+        if (apiService.lastChatResponse) {
+          this.updateSidebarWithChatData(apiService.lastChatResponse);
+        }
+      }
+      
+      // If in exam mode and passed, show success message and reveal info
+      if (document.body.classList.contains('exam-mode')) {
+        const apiService = this.apiService as any;
+        if (apiService.lastChatResponse && apiService.lastChatResponse.isPass) {
+          // If this stage is passed
+          if (!document.body.classList.contains('stage-passed')) {
+            document.body.classList.add('stage-passed');
+            this.chatContent.addMessage({
+              content: '🎉 恭喜您通過此階段！',
+              isUser: false,
+              timestamp: new Date()
+            });
+          }
+          
+          // If the entire exam is finished
+          if (apiService.lastChatResponse.finished) {
+            document.body.classList.add('exam-finished');
+            this.chatContent.addMessage({
+              content: '🏆 恭喜您完成所有階段測試！',
+              isUser: false,
+              timestamp: new Date()
+            });
+            
+            // Show all info that was hidden
+            this.setupPracticeMode(apiService.lastChatResponse);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error getting AI response:', error);
       
@@ -208,34 +249,539 @@ export class App {
     // Update current context
     this.currentContext = contextLetter;
     
+    // Show mode selection dialog
+    this.showModeSelectionDialog(sceneTitle, contextLetter);
+  }
+  
+  /**
+   * Show mode selection dialog (practice or exam)
+   * @param sceneTitle The title of the selected scene
+   * @param contextLetter The context letter (A, B, C)
+   */
+  private showModeSelectionDialog(sceneTitle: string, contextLetter: ChatContext): void {
+    // Remove existing mode dialog if present
+    const existingDialog = document.querySelector('.mode-selection-dialog');
+    if (existingDialog) {
+      existingDialog.remove();
+    }
+    
+    // Create dialog element
+    const dialog = document.createElement('div');
+    dialog.className = 'mode-selection-dialog';
+    dialog.innerHTML = `
+      <div class="mode-selection-header">
+        <h2>請選擇模式</h2>
+        <p>您已選擇 ${sceneTitle}，請選擇您想要的模式</p>
+      </div>
+      <div class="mode-options">
+        <div class="mode-option practice-mode">
+          <h3>練習模式</h3>
+          <p>顯示所有提示和輔助資訊，幫助您進行練習</p>
+          <button class="mode-select-btn practice-btn">選擇練習模式</button>
+        </div>
+        <div class="mode-option exam-mode">
+          <h3>考試模式</h3>
+          <p>隱藏提示和輔助資訊，測試您的能力</p>
+          <button class="mode-select-btn exam-btn">選擇考試模式</button>
+        </div>
+      </div>
+    `;
+    
+    // Add dialog to the DOM
+    document.body.appendChild(dialog);
+    
+    // Add event listeners to buttons
+    const practiceBtn = dialog.querySelector('.practice-btn');
+    const examBtn = dialog.querySelector('.exam-btn');
+    
+    if (practiceBtn && examBtn) {
+      practiceBtn.addEventListener('click', () => {
+        this.startSession(contextLetter, 'practice');
+        dialog.remove();
+      });
+      
+      examBtn.addEventListener('click', () => {
+        this.startSession(contextLetter, 'exam');
+        dialog.remove();
+      });
+    }
+  }
+  
+  /**
+   * Start a new session with the selected mode
+   * @param contextLetter The context letter (A, B, C)
+   * @param mode The selected mode ('practice' or 'exam')
+   */
+  private async startSession(contextLetter: ChatContext, mode: 'practice' | 'exam'): Promise<void> {
     try {
       // Show loading indicator
       const loadingIndicator = this.chatContent.addLoadingIndicator();
       
-      // Get automated introduction message from API
-      const introMessage = await this.apiService.sendPrompt(
-        `請提供${sceneTitle}的介紹與使用說明`,
-        contextLetter
-      );
+      // Start new session with API
+      const sessionData = await this.apiService.startSession();
       
       // Remove loading indicator
       this.chatContent.removeElement(loadingIndicator);
       
-      // Add AI introduction message
+      // Setup UI based on mode
+      if (mode === 'practice') {
+        this.setupPracticeMode(sessionData);
+      } else {
+        this.setupExamMode(sessionData);
+      }
+      
+      // Welcome message based on character info
+      const welcomeMessage = `您已進入${mode === 'practice' ? '練習' : '考試'}模式。`;
+      
       this.chatContent.addMessage({
-        content: introMessage,
+        content: welcomeMessage,
         isUser: false,
         timestamp: new Date()
       });
     } catch (error) {
-      console.error('Error getting scene introduction:', error);
+      console.error('Error starting session:', error);
       
       // Show error message
       this.chatContent.addMessage({
-        content: '抱歉，無法取得場景介紹。請再試一次。',
+        content: '抱歉，無法啟動會話。請再試一次。',
         isUser: false,
         timestamp: new Date()
       });
+    }
+  }
+  
+  /**
+   * Setup UI for practice mode
+   * @param sessionData The session data from API
+   */
+  private setupPracticeMode(sessionData: any): void {
+    // Remove exam-only classes if present
+    document.body.classList.remove('exam-mode');
+    document.body.classList.add('practice-mode');
+    
+    // Create sidebar if it doesn't exist
+    let sidebar = document.querySelector('.practice-sidebar');
+    if (!sidebar) {
+      sidebar = document.createElement('div');
+      sidebar.className = 'practice-sidebar';
+      document.body.appendChild(sidebar);
+      
+      // Add collapse button
+      const collapseBtn = document.createElement('button');
+      collapseBtn.className = 'sidebar-collapse-btn';
+      collapseBtn.innerHTML = '&lt;&lt;';
+      collapseBtn.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        collapseBtn.innerHTML = sidebar?.classList.contains('collapsed') ? '&gt;&gt;' : '&lt;&lt;';
+      });
+      sidebar.appendChild(collapseBtn);
+    }
+    
+    // Update sidebar content
+    this.updateSidebarContent(sessionData);
+  }
+  
+  /**
+   * Setup UI for exam mode
+   * @param sessionData The session data from API
+   */
+  private setupExamMode(sessionData: any): void {
+    // Add exam-mode class to body
+    document.body.classList.remove('practice-mode');
+    document.body.classList.add('exam-mode');
+    
+    // Remove sidebar if exists
+    const sidebar = document.querySelector('.practice-sidebar');
+    if (sidebar) {
+      sidebar.remove();
+    }
+  }
+  
+  /**
+   * Update sidebar content with session data
+   * @param data The data to display
+   */
+  private updateSidebarContent(data: any): void {
+    const sidebar = document.querySelector('.practice-sidebar');
+    if (!sidebar) return;
+    
+    // Store the data for future reference
+    this.apiService.sessionData = data;
+    
+    // Clear existing content (except collapse button)
+    const collapseBtn = sidebar.querySelector('.sidebar-collapse-btn');
+    sidebar.innerHTML = '';
+    if (collapseBtn) sidebar.appendChild(collapseBtn);
+    
+    // Add character info summary section
+    const characterSection = document.createElement('div');
+    characterSection.className = 'sidebar-section character-summary-section';
+    
+    // Extract key information from character data
+    const characterInfo = data.characterInfo || {};
+    const basicInfo = [
+      { label: '年齡', value: characterInfo.年齡 || 'N/A' },
+      { label: '性別', value: characterInfo.性別 || 'N/A' },
+      { label: '婚姻狀況', value: characterInfo.婚姻狀況 || 'N/A' },
+      { label: '職業', value: characterInfo.職業類型 || 'N/A' }
+    ];
+    
+    // Create summary HTML
+    let summaryHTML = `<h3>角色概要</h3><div class="character-summary-content">`;
+    
+    // Add avatar with name
+    summaryHTML += `
+      <div class="sidebar-avatar-container">
+        <div class="sidebar-avatar character-avatar">${characterInfo.性別 === '女' ? 'PA' : 'PA'}</div>
+        <span>客戶 #${characterInfo.客戶編號 || '?'}</span>
+      </div>
+      <div class="sidebar-info-grid">
+    `;
+    
+    // Add basic info grid
+    basicInfo.forEach(item => {
+      summaryHTML += `
+        <div class="sidebar-info-item">
+          <span class="info-label">${item.label}:</span>
+          <span class="info-value">${item.value}</span>
+        </div>
+      `;
+    });
+    
+    // Close grid and content divs
+    summaryHTML += `</div></div>`;
+    
+    // Set HTML and append
+    characterSection.innerHTML = summaryHTML;
+    sidebar.appendChild(characterSection);
+    
+    // Parse stage description to display formatted content instead of raw JSON
+    const stageDescription = this.parseStageDescription(data.stageDescription || '{}');
+    
+    // Add stage info section with improved styling
+    const stageSection = document.createElement('div');
+    stageSection.className = 'sidebar-section stage-info-section';
+    stageSection.innerHTML = `
+      <h3>階段資訊</h3>
+      <div class="stage-info-content">
+        <div class="stage-indicator">
+          <span class="stage-number">${data.currentStage}</span>
+          <div class="stage-progress">
+            <div class="stage-progress-bar" style="width: ${Math.min(data.currentStage * 20, 100)}%"></div>
+          </div>
+        </div>
+        <div class="stage-description">${stageDescription}</div>
+      </div>
+    `;
+    sidebar.appendChild(stageSection);
+  }
+  
+  /**
+   * Parse stage description JSON to formatted HTML with clear sections
+   * @param jsonStr The JSON string or object to parse
+   * @returns Formatted HTML string
+   */
+  private parseStageDescription(jsonStr: string): string {
+    try {
+      // Try to parse JSON
+      let stageInfo;
+      
+      // Check if it's already an object
+      if (typeof jsonStr === 'object') {
+        stageInfo = jsonStr;
+      } else {
+        stageInfo = JSON.parse(jsonStr.replace(/'/g, '"'));
+      }
+      
+      // Format the stage info into HTML
+      let html = '';
+      
+      // 添加階段標題，如果有的話
+      if (stageInfo.階段) {
+        html += `<div class="stage-title"><strong>階段：</strong> ${stageInfo.階段}</div>`;
+      }
+      
+      // 提取階段描述
+      if (stageInfo.階段描述) {
+        html += `<div class="stage-section">
+          <div class="stage-section-title">階段描述</div>
+          <div class="stage-section-content">${stageInfo.階段描述}</div>
+        </div>`;
+      } else if (stageInfo.描述) {
+        // 兼容舊格式
+        html += `<div class="stage-section">
+          <div class="stage-section-title">階段描述</div>
+          <div class="stage-section-content">${stageInfo.描述}</div>
+        </div>`;
+      }
+      
+      // 提取當前客戶狀態描述
+      if (stageInfo.當前客戶狀態描述) {
+        html += `<div class="stage-section">
+          <div class="stage-section-title">當前客戶狀態描述</div>
+          <div class="stage-section-content">${stageInfo.當前客戶狀態描述}</div>
+        </div>`;
+      }
+      
+      // 提取進入下一階段條件
+      if (stageInfo.進入下一階段條件) {
+        html += `<div class="stage-section">
+          <div class="stage-section-title">進入下一階段條件</div>
+          <div class="stage-section-content">`;
+        
+        if (typeof stageInfo.進入下一階段條件 === 'string') {
+          html += `<ul class="passing-conditions"><li>${stageInfo.進入下一階段條件}</li></ul>`;
+        } else if (Array.isArray(stageInfo.進入下一階段條件)) {
+          html += `<ul class="passing-conditions">`;
+          stageInfo.進入下一階段條件.forEach((condition: string) => {
+            html += `<li>${condition}</li>`;
+          });
+          html += `</ul>`;
+        } else {
+          // Handle object case
+          html += `<ul class="passing-conditions">`;
+          Object.entries(stageInfo.進入下一階段條件).forEach(([key, value]) => {
+            html += `<li><strong>${key}:</strong> ${value}</li>`;
+          });
+          html += `</ul>`;
+        }
+        
+        html += `</div></div>`;
+      }
+      
+      // 如果沒有提取到主要字段，則嘗試使用其他可能的字段
+      if (html === '') {
+        if (stageInfo.目標) {
+          html += `<div class="stage-section">
+            <div class="stage-section-title">階段目標</div>
+            <div class="stage-section-content">${stageInfo.目標}</div>
+          </div>`;
+        }
+        
+        if (stageInfo.議題) {
+          html += `<div class="stage-section">
+            <div class="stage-section-title">議題</div>
+            <div class="stage-section-content">${stageInfo.議題}</div>
+          </div>`;
+        }
+      }
+      
+      // 檢查通過條件，作為替代進入下一階段條件
+      if (stageInfo.通過條件 && !stageInfo.進入下一階段條件) {
+        html += `<div class="stage-section">
+          <div class="stage-section-title">通過條件</div>
+          <div class="stage-section-content">`;
+        
+        if (typeof stageInfo.通過條件 === 'string') {
+          html += `<ul class="passing-conditions"><li>${stageInfo.通過條件}</li></ul>`;
+        } else if (Array.isArray(stageInfo.通過條件)) {
+          html += `<ul class="passing-conditions">`;
+          stageInfo.通過條件.forEach((condition: string) => {
+            html += `<li>${condition}</li>`;
+          });
+          html += `</ul>`;
+        } else {
+          // Handle object case
+          html += `<ul class="passing-conditions">`;
+          Object.entries(stageInfo.通過條件).forEach(([key, value]) => {
+            html += `<li><strong>${key}:</strong> ${value}</li>`;
+          });
+          html += `</ul>`;
+        }
+        
+        html += `</div></div>`;
+      }
+      
+      // 將所有內容包裹在一個容器內
+      if (html) {
+        html = `<div class="stage-info-details">${html}</div>`;
+      }
+      
+      // If nothing was extracted, return the stringified JSON
+      return html || `<pre class="stage-raw-json">${JSON.stringify(stageInfo, null, 2)}</pre>`;
+    } catch (e) {
+      // 解析失敗時，採用出錯排除法，並返回格式化的錯誤訊息
+      console.error('Error parsing stage description:', e);
+      return `<div class="stage-parse-error">
+        <p><strong>錯誤：</strong>無法解析階段描述。</p>
+        <div class="stage-raw-data">${jsonStr}</div>
+      </div>`;
+    }
+  }
+  
+  /**
+   * Update sidebar with chat response data
+   * @param data The chat response data
+   */
+  /**
+   * Setup click event for character avatar
+   */
+  private setupCharacterAvatarClick(): void {
+    // Use event delegation to handle future avatar elements
+    document.body.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const avatar = target.closest('.avatar') || target.closest('.character-avatar');
+      
+      if (avatar) {
+        this.showCharacterInfoModal();
+      }
+    });
+  }
+  
+  /**
+   * Show character info modal
+   */
+  private showCharacterInfoModal(): void {
+    // Get character info from API service
+    const apiService = this.apiService as any;
+    
+    // Try to get character info from both sessionData and lastChatResponse
+    // This ensures we catch whichever one has the data
+    const characterInfo = apiService.sessionData?.characterInfo || 
+                          apiService.sessionData?.character_info || 
+                          apiService.lastChatResponse?.characterInfo || 
+                          apiService.lastChatResponse?.character_info || {};
+    
+    // Same for character detail
+    const characterDetail = apiService.sessionData?.characterDetail || 
+                            apiService.sessionData?.character_detail || 
+                            apiService.lastChatResponse?.characterDetail || 
+                            apiService.lastChatResponse?.character_detail || '無詳細資訊';
+    
+    // Debug logs
+    console.log('Character Info:', characterInfo);
+    console.log('Character Detail:', characterDetail);
+    console.log('Session Data:', apiService.sessionData);
+    console.log('Last Chat Response:', apiService.lastChatResponse);
+    
+    // Remove existing modal if present
+    const existingModal = document.querySelector('.character-info-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    // Check if we're in exam mode and adjust what we show
+    const isExamMode = document.body.classList.contains('exam-mode');
+    const isExamFinished = document.body.classList.contains('exam-finished');
+    
+    // Create modal element
+    const modal = document.createElement('div');
+    modal.className = 'character-info-modal';
+    
+    if (isExamMode && !isExamFinished) {
+      // Limited info for exam mode
+      modal.innerHTML = `
+        <div class="character-info-modal-content">
+          <div class="character-info-modal-header">
+            <h2>角色資訊</h2>
+            <button class="character-info-modal-close">&times;</button>
+          </div>
+          <div class="character-info-modal-body">
+            <div class="character-detail">
+              <div class="exam-mode-message">
+                <p>考試模式下，只能查看限定的角色資訊。</p>
+                <div class="limited-info">
+                  <p><strong>年齡：</strong>${characterInfo.年齡 || 'N/A'}</p>
+                  <p><strong>性別：</strong>${characterInfo.性別 || 'N/A'}</p>
+                  <p><strong>婚姻程度：</strong>${characterInfo.婚姻狀況 || 'N/A'}</p>
+                  <p><strong>教育程度：</strong>${characterInfo.教育程度 || 'N/A'}</p>
+                  <p><strong>收入：</strong>${characterInfo.收入 || 'N/A'}</p>
+                  <p><strong>職業類型：</strong>${characterInfo.職業類型 || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // Full info for practice mode or completed exam
+      modal.innerHTML = `
+        <div class="character-info-modal-content">
+          <div class="character-info-modal-header">
+            <h2>角色資訊</h2>
+            <button class="character-info-modal-close">&times;</button>
+          </div>
+          <div class="character-info-modal-body">
+            <div class="character-detail">
+              <h3>角色詳細信息</h3>
+              <p>${characterDetail}</p>
+            </div>
+            <div class="character-json">
+              <h3>角色數據</h3>
+              <pre>${JSON.stringify(characterInfo, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Add modal to the DOM
+    document.body.appendChild(modal);
+    
+    // Add close button event listener
+    const closeBtn = modal.querySelector('.character-info-modal-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        modal.remove();
+      });
+    }
+    
+    // Close when clicking outside modal content
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.remove();
+      }
+    });
+  }
+  
+  private updateSidebarWithChatData(data: any): void {
+    const sidebar = document.querySelector('.practice-sidebar');
+    if (!sidebar) return;
+    
+    // Store the data for future reference
+    if (this.apiService.lastChatResponse !== data) {
+      this.apiService.lastChatResponse = data;
+    }
+    
+    // 只更新有新資料的部分，保留沒有新資料的部分
+    
+    // Update stage info if we have stage information
+    if (data.stageDescription) {
+      const stageSection = sidebar.querySelector('.stage-info-section');
+      if (stageSection) {
+        // Parse the stage description to formatted HTML
+        const stageDescription = this.parseStageDescription(data.stageDescription || '{}');
+        
+        stageSection.innerHTML = `
+          <h3>階段資訊</h3>
+          <div class="stage-info-content">
+            <div class="stage-indicator">
+              <span class="stage-number">${data.currentStage || '1'}</span>
+              <div class="stage-progress">
+                <div class="stage-progress-bar" style="width: ${Math.min((data.currentStage || 1) * 20, 100)}%"></div>
+              </div>
+            </div>
+            <div class="stage-description">${stageDescription}</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Add or update inner activity section if we have activity data
+    if (data.innerActivity) {
+      let innerActivitySection = sidebar.querySelector('.inner-activity-section');
+      if (!innerActivitySection) {
+        innerActivitySection = document.createElement('div');
+        innerActivitySection.className = 'sidebar-section inner-activity-section';
+        sidebar.appendChild(innerActivitySection);
+      }
+      
+      innerActivitySection.innerHTML = `
+        <h3>AI 內部活動</h3>
+        <div class="inner-activity-content">
+          <pre>${data.innerActivity || '無資料'}</pre>
+        </div>
+      `;
     }
   }
 }

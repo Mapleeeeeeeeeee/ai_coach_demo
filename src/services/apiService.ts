@@ -4,6 +4,8 @@
 export class ApiService {
   private baseUrl: string;
   private sessionId: string | null = null;
+  public lastChatResponse: any = null; // Store last chat response for UI access (changed to public)
+  public sessionData: any = null; // Store session data for UI access
 
   /**
    * Initialize ApiService with the base URL
@@ -42,7 +44,10 @@ export class ApiService {
       }
 
       const data = await response.json();
+      console.log('Backend Response (startSession):', data);
       this.sessionId = data.session_id;
+      // Store session data for UI access
+      this.sessionData = data;
       return {
         sessionId: data.session_id,
         characterInfo: data.character_info,
@@ -92,6 +97,9 @@ export class ApiService {
       }
 
       const data = await response.json();
+      console.log('Backend Response (sendChat):', data);
+      // Save the response for UI access
+      this.lastChatResponse = data;
       return {
         responseText: data.response_text,
         innerActivity: data.inner_activity,
@@ -151,6 +159,14 @@ export class ApiService {
    */
   getSessionId(): string | null {
     return this.sessionId;
+  }
+  
+  /**
+   * Get the last chat response
+   * @returns The last chat response or null if no chat has happened yet
+   */
+  getLastChatResponse(): any {
+    return this.lastChatResponse;
   }
 
   // Keep the original methods for backward compatibility

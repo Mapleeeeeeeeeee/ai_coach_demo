@@ -11,7 +11,10 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: [
+          require('mini-css-extract-plugin').loader,
+          'css-loader'
+        ],
       },
     ],
   },
@@ -23,6 +26,9 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/dist/',
   },
+  plugins: [
+    new (require('mini-css-extract-plugin'))({ filename: 'main.css' })
+  ],
   devServer: {
     static: {
       directory: path.join(__dirname, '/'),

@@ -30,6 +30,7 @@ body {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative; /* Ensure proper stacking context */
 }
 
 /* Header */
@@ -177,10 +178,16 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   margin-right: 0;
+  transition: margin-right 0.3s ease;
 }
 
 body.practice-mode .chat-content {
   margin-right: 320px;
+  transition: margin-right 0.3s ease;
+}
+
+body.practice-mode .chat-content.sidebar-collapsed {
+  margin-right: 0;
 }
 
 /* 空白區：卡片快速選擇 */

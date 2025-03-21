@@ -21,7 +21,20 @@
     
     /* Import your CSS here as needed */
   </style>
-  <link rel="stylesheet" href="dist/main.css">
+  <style id="dynamicStyles"></style>
+  <script>
+    // Dynamically load CSS to prevent MIME type errors
+    window.addEventListener('DOMContentLoaded', function() {
+      fetch('dist/main.css')
+        .then(response => response.text())
+        .then(css => {
+          document.getElementById('dynamicStyles').textContent = css;
+        })
+        .catch(error => {
+          console.error('Failed to load CSS:', error);
+        });
+    });
+  </script>
 </head>
 
 <body>

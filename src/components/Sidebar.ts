@@ -198,7 +198,9 @@ export class Sidebar {
    */
   private addStageInfoSection(data: any): void {
     // Parse stage description to display formatted content instead of raw JSON
-    const stageDescription = this.parseStageDescription(data.stageDescription || '{}');
+    const rawStageDescription = this.parseStageDescription(data.stageDescription || '{}');
+
+    const formattedStageDescription = rawStageDescription.replace(/\\n/g, '<br>');
     
     // Add stage info section with improved styling
     const stageSection = document.createElement('div');
@@ -212,7 +214,7 @@ export class Sidebar {
             <div class="stage-progress-bar" style="width: ${Math.min((data.currentStage || 1) * 20, 100)}%"></div>
           </div>
         </div>
-        <div class="stage-description">${stageDescription}</div>
+        <div class="stage-description">${formattedStageDescription}</div>
       </div>
     `;
     this.element.appendChild(stageSection);
@@ -225,8 +227,8 @@ export class Sidebar {
   private updateStageInfoSection(data: any): void {
     const stageSection = this.element.querySelector('.stage-info-section');
     if (stageSection) {
-      // Parse the stage description to formatted HTML
-      const stageDescription = this.parseStageDescription(data.stageDescription || '{}');
+      const rawStageDescription = this.parseStageDescription(data.stageDescription || '{}');
+      const formattedStageDescription = rawStageDescription.replace(/\\n/g, '<br>');
       
       stageSection.innerHTML = `
         <h3>階段資訊</h3>
@@ -237,7 +239,7 @@ export class Sidebar {
               <div class="stage-progress-bar" style="width: ${Math.min((data.currentStage || 1) * 20, 100)}%"></div>
             </div>
           </div>
-          <div class="stage-description">${stageDescription}</div>
+          <div class="stage-description">${formattedStageDescription}</div>
         </div>
       `;
     }

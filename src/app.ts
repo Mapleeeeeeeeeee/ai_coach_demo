@@ -102,6 +102,9 @@ export class App {
         await this.apiService.startSession();
       }
       
+      // Store current stage before sending message to detect changes
+      const previousStage = this.apiService.lastChatResponse?.currentStage || 0;
+      
       // Use sendChat instead of deprecated sendPrompt
       const chatResponse = await this.apiService.sendChat(message);
       
@@ -125,9 +128,9 @@ export class App {
         }
       }
       
-      // If in exam mode and passed, show success message and reveal info
+      // If in exam mode and stage has changed, show success message and reveal info
       if (document.body.classList.contains('exam-mode')) {
-        if (chatResponse && chatResponse.isPass) {
+        if (chatResponse && previousStage < chatResponse.currentStage) {
           // If this stage is passed
           if (!document.body.classList.contains('stage-passed')) {
             document.body.classList.add('stage-passed');

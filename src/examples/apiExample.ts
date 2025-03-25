@@ -24,8 +24,8 @@ export async function characterChatExample() {
     console.log(`- 回复文本: ${firstResponse.responseText}`);
     console.log(`- 内部活动: ${firstResponse.innerActivity}`);
     console.log(`- 当前阶段: ${firstResponse.currentStage}`);
-    console.log(`- 阶段通过: ${firstResponse.isPass ? '是' : '否'}`);
-    
+    console.log(`- 阶段描述: ${firstResponse.stageDescription}`);
+
     // 3. 发送另一条消息
     console.log('\n发送第二条消息...');
     const secondResponse = await apiService.sendChat('我想了解更多关于你的情况');

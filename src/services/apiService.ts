@@ -74,7 +74,6 @@ export class ApiService {
     conversation: string;
     currentStage: number;
     stageDescription: string;
-    isPass: boolean;
     finished: boolean;
   }> {
     try {
@@ -108,7 +107,6 @@ export class ApiService {
         conversation: data.conversation,
         currentStage: data.current_stage,
         stageDescription: data.stage_description,
-        isPass: data.is_pass,
         finished: data.finished,
       };
     } catch (error) {
